@@ -6,6 +6,8 @@ use axum::{
     http::StatusCode
 };
 use tower_http::services::ServeDir;
+
+pub mod routes;
 pub struct Application {
     server: Serve<Router, Router>,
     // address is exposed as public field
@@ -20,7 +22,7 @@ impl Application {
         // we dont need it at this point!
         let app = Router::new()
             .nest_service("/", ServeDir::new("assets"))
-            .route("/signup", post(signup))
+            .route("/signup", post(routes::signup))
             .route("/login", post(login))
             .route("/logout", get(logout))
             .route("/verify-2fa", post(verify_2fa))
@@ -44,10 +46,6 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
-}
-
-async fn signup() -> impl IntoResponse {
-    StatusCode::OK.into_response()
 }
 
 async fn login() -> impl IntoResponse {

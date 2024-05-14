@@ -1,5 +1,5 @@
 use auth_service::Application;
-use axum::http::request;
+use uuid::Uuid;
 
 
 pub struct TestApp {
@@ -38,19 +38,23 @@ impl  TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn signup(&self, params :Vec<(&str, &str)>) -> reqwest::Response {
+    pub async fn signup<Body>(&self, body: &Body) -> reqwest::Response
+    where
+    Body: serde::Serialize {
         self.http_client
             .post(&format!("{}/signup", &self.address))
-            .form(&params)
+            .json(body)
             .send()
             .await
             .expect("Failed to signup a new user")
     }
 
-    pub async fn login(&self, params: Vec<(&str, &str)>) -> reqwest::Response {
+    pub async fn login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+    Body: serde::Serialize {
         self.http_client
             .post(&format!("{}/login", &self.address))
-            .form(&params)
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request login")
@@ -64,21 +68,29 @@ impl  TestApp {
             .expect("Failed to execute request logout")
     }
 
-    pub async fn verify_2fa(&self, params: Vec<(&str, &str)>) -> reqwest::Response {
+    pub async fn verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
+    where
+    Body: serde::Serialize {
         self.http_client
             .post(&format!("{}/verify-2fa", &self.address))
-            .form(&params)
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request verify 2fa")
     }
 
-    pub async fn verify_token(&self, params: Vec<(&str, &str)>) -> reqwest::Response {
+    pub async fn verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    where
+    Body: serde::Serialize {
         self.http_client
             .post(&format!("{}/verify-token", &self.address))
-            .form(&params)
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request verify login")
     }
+}
+
+pub fn get_random_email() -> String {
+    format!("{}@example.com", Uuid::new_v4())
 }

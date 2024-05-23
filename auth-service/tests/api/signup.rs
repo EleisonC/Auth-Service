@@ -1,5 +1,5 @@
 use crate::helpers::{self, TestApp};
-use auth_service::routes::SignupResponse;
+use auth_service::{routes::SignupResponse, ErrorResponse};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
@@ -47,7 +47,7 @@ async fn should_return_201_if_valid_input() {
 
     let valid_data = serde_json::json!({
         "email": random_email,
-        "password": "string",
+        "password": "string1234",
         "requires2FA": true
     });
 
@@ -100,6 +100,11 @@ async fn should_return_400_if_invalid_input() {
             "email": "user_test@mail.com",
             "password": "",
             "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "    @      ",
+            "password": "password1233",
+            "requires2FA": true
         })
     ];
 
@@ -111,6 +116,15 @@ async fn should_return_400_if_invalid_input() {
             400,
             "Failed for input: {:?}",
             test_case
+        );
+
+        assert_eq!(
+            response
+                .json::<ErrorResponse>()
+                .await
+                .expect("Could not deserialize response body to ErrorResponse")
+                .error,
+                "Invalid credentials".to_owned()
         )
     }
 }
@@ -135,5 +149,14 @@ async fn should_return_409_if_email() {
         409,
         "Failed for input: {:?}",
         test_case
+    );
+
+    assert_eq!(
+        response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+            "User already exists".to_owned()
     )
 }

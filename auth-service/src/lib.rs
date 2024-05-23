@@ -1,13 +1,19 @@
 use std::error::Error;
 use axum::{
-    response::{Html, IntoResponse},
+    response::IntoResponse,
     routing::{get, post},
     serve::Serve, Router,
     http::StatusCode
 };
 use tower_http::services::ServeDir;
+use app_state::AppState;
 
 pub mod routes;
+pub mod services;
+pub mod domain;
+pub mod app_state;
+
+
 pub struct Application {
     server: Serve<Router, Router>,
     // address is exposed as public field
@@ -16,7 +22,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         // Move the Router difinition from main.rs to here 
         // Also, remove the `hello` route
         // we dont need it at this point!
@@ -26,7 +32,8 @@ impl Application {
             .route("/login", post(login))
             .route("/logout", get(logout))
             .route("/verify-2fa", post(verify_2fa))
-            .route("/verify-token", post(verify_token));
+            .route("/verify-token", post(verify_token))
+            .with_state(app_state.clone());
 
         let router = app;
 

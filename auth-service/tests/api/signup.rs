@@ -71,3 +71,69 @@ async fn should_return_201_if_valid_input() {
     );
 }
 
+#[tokio::test]
+async fn should_return_400_if_invalid_input() {
+    let app = TestApp::new().await;
+
+    let test_cases = [
+        serde_json::json!({
+            "email": "user.mail.com",
+            "password": "password123",
+            "requires2FA": false
+        }),
+        serde_json::json!({
+            "email": "",
+            "password": "password123",
+            "requires2FA": true 
+        }),
+        serde_json::json!({
+            "email": "user_test@mail.com",
+            "password": "          ",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "user_test@mail.com",
+            "password": "pass",
+            "requires2FA": true
+        }),
+        serde_json::json!({
+            "email": "user_test@mail.com",
+            "password": "",
+            "requires2FA": true
+        })
+    ];
+
+    for test_case in test_cases.iter() {
+        let response = app.signup(&test_case).await;
+
+        assert_eq!(
+            response.status().as_u16(),
+            400,
+            "Failed for input: {:?}",
+            test_case
+        )
+    }
+}
+#[tokio::test]
+async fn should_return_409_if_email() {
+    let app = TestApp::new().await;
+    let random_email = helpers::get_random_email();
+
+
+    let test_case = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+        "requires2FA": true
+    });
+
+    app.signup(&test_case).await;
+
+    let response = app.signup(&test_case).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        409,
+        "Failed for input: {:?}",
+        test_case
+    )
+}

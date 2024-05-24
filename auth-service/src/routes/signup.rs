@@ -2,7 +2,7 @@ use axum::{http::StatusCode, extract::State,
     response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppState, domain::{AuthAPIError, User}, services::UserStoreError};
+use crate::{app_state::AppState, domain::{AuthAPIError, User, UserStoreError}};
 #[derive(Deserialize)]
 pub struct SignupRequest {
     pub email:String,
@@ -28,7 +28,7 @@ pub async fn signup(State(state): State<AppState>, Json(request): Json<SignupReq
 
     let mut user_store = state.user_store.write().await;
 
-    match user_store.add_user(user) {
+    match user_store.add_user(user).await {
         Ok(()) => {
             let response = Json(SignupResponse {
                 message: "User created successfully!".to_string()

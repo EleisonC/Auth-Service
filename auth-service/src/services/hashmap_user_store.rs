@@ -1,21 +1,16 @@
 use std::collections::HashMap;
-use crate::domain::User;
+use crate::domain::{User, UserStore, UserStoreError};
 
-#[derive(Debug, PartialEq)]
-pub enum UserStoreError {
-    UserAlreadyExists,
-    UserNotFound,
-    InvalidCredentials,
-    UnexpectedError,
-}
+
 
 #[derive(Default, Debug)]
 pub struct HashmapUserStore {
     users: HashMap<String, User>
 }
 
-impl HashmapUserStore {
-    pub fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+#[async_trait::async_trait]
+impl UserStore for HashmapUserStore {
+    async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         let current_user_email = user.email.clone();
 
         if self.users.contains_key(&current_user_email) {
@@ -26,7 +21,7 @@ impl HashmapUserStore {
         Ok(())
     }
 
-    pub fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
         if let Some(user) = self.users.get(email) {
             return Ok(user.clone())
         } else {
@@ -34,7 +29,7 @@ impl HashmapUserStore {
         }
     }
 
-    pub fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
         if let Some(user) = self.users.get(email) {
             if user.password == password {
                 return Ok(())
@@ -59,7 +54,7 @@ mod tests {
             false
         );
 
-        let result = store.add_user(user.clone());
+        let result = store.add_user(user.clone()).await;
         assert_eq!(result, Ok(()));
     }
 
@@ -71,9 +66,9 @@ mod tests {
             "password".to_string(),
             false
         );
-        store.add_user(user.clone()).unwrap();
+        store.add_user(user.clone()).await.unwrap();
 
-        let result = store.get_user(&user.email);
+        let result = store.get_user(&user.email).await;
         match result {
             Ok(u) => assert_eq!(u, user),
             Err(e) => panic!("Expected Ok, got Err: {:?}", e),
@@ -89,9 +84,9 @@ mod tests {
             true
         );
 
-        store.add_user(user.clone()).unwrap();
+        store.add_user(user.clone()).await.unwrap();
 
-        let result = store.validate_user(&user.email, &user.password);
+        let result = store.validate_user(&user.email, &user.password).await;
         assert_eq!(result, Ok(()));
     }
 }

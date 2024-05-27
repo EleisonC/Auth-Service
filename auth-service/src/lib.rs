@@ -26,7 +26,8 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error")
+            AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error"),
+            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials")
         };
 
         let body = Json(ErrorResponse {
@@ -52,7 +53,7 @@ impl Application {
         let app = Router::new()
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
-            .route("/login", post(login))
+            .route("/login", post(routes::login))
             .route("/logout", get(logout))
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
@@ -78,9 +79,9 @@ impl Application {
     }
 }
 
-async fn login() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
+// async fn login() -> impl IntoResponse {
+//     StatusCode::OK.into_response()
+// }
 
 async fn logout() -> impl IntoResponse {
     StatusCode::OK.into_response()

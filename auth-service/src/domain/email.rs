@@ -1,12 +1,14 @@
+use validator::validate_email;
+
 #[derive(Eq, Hash, Clone, Debug, PartialEq)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: String) -> Result<Email, String> {
-        if email.is_empty() || !email.contains("@") || email.trim().to_string().capacity() <= 1 {
+    pub fn parse(email: String) -> Result<Self, String> {
+        if !validate_email(&email) {
             return Err("Invalid email address".to_string());
         } else {
-            Ok(Email(email))
+            Ok(Self(email))
         }
     }
 }
@@ -25,16 +27,25 @@ mod tests {
     fn test_email_paser() {
         let email = "user@mail.com".to_string();
 
-        let result = Email::parse(email.clone()).expect("Should be a valid password");
-        assert_eq!(result.as_ref(), email)
+        let result = Email::parse(email.clone()).is_ok();
+        assert_eq!(result, true)
     }
 
     #[test]
     fn test_invalid_email() {
         let email = "user.mail.com".to_string();
 
-        let result = Email::parse(email.clone());
-        assert_eq!(result, Err("Invalid email address".to_string()))
+        let result = Email::parse(email.clone()).is_err();
+        assert_eq!(result, true)
     }
+
+    #[test]
+    fn test_invalid_email_spaces() {
+        let email = "     @     mail.com".to_string();
+
+        let result = Email::parse(email.clone()).is_err();
+        assert_eq!(result, true)
+    }
+
 
 }

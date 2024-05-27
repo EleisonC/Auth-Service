@@ -2,11 +2,11 @@
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: String) -> Result<Password, String> {
+    pub fn parse(password: String) -> Result<Self, String> {
         if password.is_empty() || password.trim().to_string().capacity() < 8 {
             return Err("Invalid password".to_string());
         } else {
-            Ok(Password(password))
+            Ok(Self(password))
         }
     }
 }

@@ -1,7 +1,7 @@
 mod user;
 mod error;
 pub mod data_stores;
-mod email;
+pub mod email;
 mod password;
 
 pub use user::*;

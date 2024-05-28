@@ -1,15 +1,16 @@
-use std::error::Error;
+use std::{error::Error, str::FromStr};
 use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
     serve::Serve, Router,
-    http::StatusCode,
+    http::{Method, StatusCode},
     Json
 };
-use tower_http::services::ServeDir;
+use tower_http::{services::ServeDir, cors::CorsLayer};
 use app_state::AppState;
 use domain::AuthAPIError;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 pub mod routes;
 pub mod services;
@@ -28,7 +29,9 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
             AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error"),
-            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token")
         };
 
         let body = Json(ErrorResponse {
@@ -51,14 +54,25 @@ impl Application {
         // Move the Router difinition from main.rs to here 
         // Also, remove the `hello` route
         // we dont need it at this point!
+        let allowed_origins = [
+            "http://localhost:8000".parse()?,
+            "http://159.223.168.210:8000".parse()?
+        ];
+
+        let cors = CorsLayer::new()
+            .allow_methods([Method::GET, Method::POST])
+            .allow_credentials(true)
+            .allow_origin(allowed_origins);
+
         let app = Router::new()
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
             .route("/login", post(routes::login))
-            .route("/logout", get(logout))
+            .route("/logout", post(routes::logout))
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
-            .with_state(app_state.clone());
+            .with_state(app_state.clone())
+            .layer(cors);
 
         let router = app;
 
@@ -84,9 +98,9 @@ impl Application {
 //     StatusCode::OK.into_response()
 // }
 
-async fn logout() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
+// async fn logout() -> impl IntoResponse {
+//     StatusCode::OK.into_response()
+// }
 
 async fn verify_2fa() -> impl IntoResponse {
     StatusCode::OK.into_response()

@@ -5,8 +5,9 @@ use auth_service::{app_state::AppState, services, Application, utils::constants:
 
 #[tokio::main]
 async fn main() {
-    let user_store = services::HashmapUserStore::default();
-    let app_state = AppState::new(Arc::new(RwLock::new(user_store)));
+    let user_store = Arc::new(RwLock::new(services::HashmapUserStore::default()));
+    let banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
+    let app_state = AppState::new(user_store, banned_token_store);
     let app = Application::build(app_state, prod::APP_ADDRESS)
         .await
         .expect("Failed to build app");

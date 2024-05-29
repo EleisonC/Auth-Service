@@ -15,3 +15,15 @@ pub trait UserStore {
     async fn validate_user(&self, email: Email, password: Password) -> Result<(), UserStoreError> ;
 }
 
+#[derive(Debug, PartialEq)]
+pub enum BannedTokenStoreError {
+    UnexpectedError,
+    TokenNotFound,
+}
+
+#[async_trait::async_trait]
+pub trait BannedTokenStore {
+    async fn store_banned_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
+    async fn check_banned_token(&self, token: String) -> Result<String, BannedTokenStoreError>;
+}
+

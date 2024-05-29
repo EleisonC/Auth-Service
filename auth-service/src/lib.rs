@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr};
+use std::error::Error;
 use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -10,7 +10,6 @@ use tower_http::{services::ServeDir, cors::CorsLayer};
 use app_state::AppState;
 use domain::AuthAPIError;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 pub mod routes;
 pub mod services;

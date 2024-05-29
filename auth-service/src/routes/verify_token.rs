@@ -1,18 +1,19 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{domain::AuthAPIError, utils::auth::validate_token};
+use crate::{app_state::AppState, domain::AuthAPIError, utils::auth::validate_token};
 
 #[derive(Deserialize)]
 pub struct TokenVerificationReq {
     pub token: String
 }
 
-pub async fn verify_token(Json(request): Json<TokenVerificationReq>) -> Result<impl IntoResponse, AuthAPIError> {
+pub async fn verify_token(State(state): State<AppState>, Json(request): Json<TokenVerificationReq>) -> Result<impl IntoResponse, AuthAPIError> {
     
     let valid_token = &request.token;
+    let banned_tk_store = state.banned_token_store.clone();
 
-    if validate_token(&valid_token).await.is_err() {
+    if validate_token(&valid_token, banned_tk_store).await.is_err() {
         return Err(AuthAPIError::InvalidToken)
     }
 

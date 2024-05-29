@@ -64,11 +64,26 @@ async fn should_return_200_logout_if_valid_cookie() {
         200
     );
 
+    let auth_token = response.cookies().find(|cookie| cookie.name() == JWT_COOKIE_NAME).expect("No auth cookie found");
+
     let response = app.logout().await;
 
     assert_eq!(
         response.status().as_u16(),
         200
+    );
+
+    app.cookie_jar.add_cookie_str(
+        &format!(
+            "{}={}; HttpOnly; SameSite=Lax; Secure; Path=/", JWT_COOKIE_NAME, auth_token.value()
+        ),
+        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
+    );
+
+    let response = app.logout().await;
+    assert_eq!(
+        response.status().as_u16(),
+        401
     )
 }
 

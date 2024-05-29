@@ -13,8 +13,9 @@ pub struct TestApp {
 
 impl  TestApp {
     pub async fn new() -> Self {
-        let test_user_store = services::HashmapUserStore::default();
-        let test_app_state = AppState::new(Arc::new(RwLock::new(test_user_store)));
+        let test_user_store = Arc::new(RwLock::new(services::HashmapUserStore::default()));
+        let test_banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
+        let test_app_state = AppState::new(test_user_store, test_banned_token_store);
         let app = Application::build(test_app_state, test::APP_ADDRESS)
             .await
             .expect("Failed to build app");

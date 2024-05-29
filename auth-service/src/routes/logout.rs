@@ -1,5 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse};
-use axum_extra::extract::{cookie, CookieJar};
+use axum_extra::extract::CookieJar;
 
 use crate::{
     domain::AuthAPIError,

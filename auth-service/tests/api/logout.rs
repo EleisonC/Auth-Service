@@ -1,39 +1,11 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
-use axum::http::response;
+use auth_service::utils::constants::JWT_COOKIE_NAME;
 use reqwest::Url;
 
 
 #[tokio::test]
 async fn should_return_400_logout_if_jwt_cookie_missing() {
     let app = TestApp::new().await;
-
-    // let random_email = get_random_email();
-
-    // let valid_signup_body = serde_json::json!({
-    //     "email": random_email,
-    //     "password": "password123",
-    //     "requires2FA": false
-    // });
-
-    // let response = app.signup(&valid_signup_body).await;
-
-    // assert_eq!(
-    //     response.status().as_u16(),
-    //     201
-    // );
-
-    // let login_body = serde_json::json!({
-    //     "email": random_email,
-    //     "password": "password123"
-    // });
-
-    // let response = app.login(&login_body).await;
-
-    // assert_eq!(
-    //     response.status().as_u16(),
-    //     200
-    // );
 
     let response = app.logout().await;
 

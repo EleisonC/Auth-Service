@@ -20,6 +20,7 @@ chrono = "0.4.35"
 dotenvy = "0.15.7"
 lazy_static = "1.4.0"
 url = "2"
+rand = "0.8.5"
 
 [dev-dependencies]
 fake = "=2.3.0"

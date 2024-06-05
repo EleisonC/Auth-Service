@@ -1,4 +1,5 @@
-use auth_service::utils::constants::JWT_COOKIE_NAME;
+use auth_service::{domain::{Email, TwoFACodeStore}, routes::TwoFactorAuthResponse, utils::constants::JWT_COOKIE_NAME
+};
 
 use crate::helpers::{TestApp, get_random_email};
 
@@ -200,4 +201,16 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         response.status().as_u16(),
         206
     );
+
+    let json_body = response
+        .json::<TwoFactorAuthResponse>()
+        .await.expect("Could not deserialize response body to TwoFactorAuthResponse");
+
+    assert_eq!(json_body.message, "2FA required".to_owned());
+
+    let test_store = app.two_fa_code_store.read().await;
+    let email = Email::parse(random_email).unwrap();
+    let result = test_store.get_code(&email).await.unwrap();
+
+    assert_eq!(result.0.as_ref(), json_body.login_attempt_id)
 }

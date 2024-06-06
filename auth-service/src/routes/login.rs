@@ -72,7 +72,13 @@ async fn handle_2fa(
     let two_fa_code = TwoFACode::default();
 
     let mut store = state.two_fa_code_store.write().await;
-    if store.add_code(email.clone(), login_attempt_id.clone(), two_fa_code).await.is_err() {
+    if store.add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone()).await.is_err() {
+        return (jar, Err(AuthAPIError::UnexpectedError))
+    }
+
+    let email_client = state.email_client.write().await;
+
+    if email_client.send_email(email, login_attempt_id.as_ref(), two_fa_code.as_ref()).await.is_err() {
         return (jar, Err(AuthAPIError::UnexpectedError))
     }
 

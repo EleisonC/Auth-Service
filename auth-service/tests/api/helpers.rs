@@ -17,8 +17,9 @@ impl  TestApp {
         let test_user_store = Arc::new(RwLock::new(services::HashmapUserStore::default()));
         let test_banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
         let two_fa_code_store = Arc::new(RwLock::new(services::HashmapTwoFACodeStore::default()));
+        let email_client = Arc::new(RwLock::new(services::MockEmailClient::default()));
 
-        let test_app_state = AppState::new(test_user_store, test_banned_token_store, two_fa_code_store.clone());
+        let test_app_state = AppState::new(test_user_store, test_banned_token_store, two_fa_code_store.clone(), email_client);
         let app = Application::build(test_app_state, test::APP_ADDRESS)
             .await
             .expect("Failed to build app");

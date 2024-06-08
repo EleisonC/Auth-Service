@@ -68,7 +68,7 @@ impl Application {
             .route("/signup", post(routes::signup))
             .route("/login", post(routes::login))
             .route("/logout", post(routes::logout))
-            .route("/verify-2fa", post(verify_2fa))
+            .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token))
             .with_state(app_state.clone())
             .layer(cors);
@@ -101,9 +101,9 @@ impl Application {
 //     StatusCode::OK.into_response()
 // }
 
-async fn verify_2fa() -> impl IntoResponse {
-    StatusCode::OK.into_response()
-}
+// async fn verify_2fa() -> impl IntoResponse {
+//     StatusCode::OK.into_response()
+// }
 
 // async fn verify_token() -> impl IntoResponse {
 //     StatusCode::OK.into_response()

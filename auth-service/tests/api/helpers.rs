@@ -1,4 +1,4 @@
-use auth_service::{app_state::AppState, services, Application, utils::constants::test};
+use auth_service::{app_state::AppState, services::{self, HashmapTwoFACodeStore}, utils::constants::test, Application};
 use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -8,14 +8,18 @@ use reqwest::cookie::Jar;
 pub struct TestApp {
     pub address: String,
     pub http_client: reqwest::Client,
-    pub cookie_jar: Arc<Jar>
+    pub cookie_jar: Arc<Jar>,
+    pub two_fa_code_store: Arc<RwLock<HashmapTwoFACodeStore>>
 }
 
 impl  TestApp {
     pub async fn new() -> Self {
         let test_user_store = Arc::new(RwLock::new(services::HashmapUserStore::default()));
         let test_banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
-        let test_app_state = AppState::new(test_user_store, test_banned_token_store);
+        let two_fa_code_store = Arc::new(RwLock::new(services::HashmapTwoFACodeStore::default()));
+        let email_client = Arc::new(RwLock::new(services::MockEmailClient::default()));
+
+        let test_app_state = AppState::new(test_user_store, test_banned_token_store, two_fa_code_store.clone(), email_client);
         let app = Application::build(test_app_state, test::APP_ADDRESS)
             .await
             .expect("Failed to build app");
@@ -36,7 +40,8 @@ impl  TestApp {
         let testing_app = TestApp {
             address,
             http_client,
-            cookie_jar
+            cookie_jar,
+            two_fa_code_store
         };
 
         testing_app

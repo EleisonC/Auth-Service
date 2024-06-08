@@ -1,4 +1,4 @@
-use auth_service::{domain::{Email, TwoFACodeStore}, routes::TwoFactorAuthResponse, ErrorResponse};
+use auth_service::{domain::{Email, TwoFACodeStore}, routes::TwoFactorAuthResponse, ErrorResponse, utils::constants::JWT_COOKIE_NAME,};
 
 use crate::helpers::{get_random_email, TestApp};
 
@@ -212,4 +212,139 @@ async fn should_return_401_if_old_code() {
             .error,
             "Incorrect credentials".to_string()
     )
+}
+
+#[tokio::test]
+async fn should_return_200_if_correct_code() {
+    let app = TestApp::new().await;
+
+    let random_email = get_random_email();
+
+    let valid_signup_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+        "requires2FA": true
+    });
+
+    let response = app.signup(&valid_signup_body).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        201
+    );
+
+    let login_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123"
+    });
+
+    let response = app.login(&login_body).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        206
+    );
+
+    let json_body = response
+        .json::<TwoFactorAuthResponse>()
+        .await.expect("Could not deserialize response body to TwoFactorAuthResponse");
+
+    assert_eq!(json_body.message, "2FA required".to_owned());
+    assert!(!json_body.login_attempt_id.is_empty());
+
+    let email = Email::parse(random_email.clone()).unwrap();
+    let result = app.two_fa_code_store.read().await.get_code(&email).await.unwrap();
+
+    let code = result.1.as_ref();
+
+    let two_fa_data = serde_json::json!({
+        "email": random_email,
+        "loginAttemptId": json_body.login_attempt_id,
+        "2FACode": code
+    });
+
+    let response = app.verify_2fa(&two_fa_data).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        200
+    );
+
+    let auth_cookie = response
+    .cookies()
+    .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+    .expect("No auth cookie found");
+
+    assert!(!auth_cookie.value().is_empty());
+}
+
+#[tokio::test]
+async fn should_return_401_if_same_code_twice() {
+    let app = TestApp::new().await;
+
+    let random_email = get_random_email();
+
+    let valid_signup_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+        "requires2FA": true
+    });
+
+    let response = app.signup(&valid_signup_body).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        201
+    );
+
+    let login_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123"
+    });
+
+    let response = app.login(&login_body).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        206
+    );
+
+    let json_body = response
+        .json::<TwoFactorAuthResponse>()
+        .await.expect("Could not deserialize response body to TwoFactorAuthResponse");
+
+    assert_eq!(json_body.message, "2FA required".to_owned());
+    assert!(!json_body.login_attempt_id.is_empty());
+
+    let email = Email::parse(random_email.clone()).unwrap();
+    let result = app.two_fa_code_store.read().await.get_code(&email).await.unwrap();
+
+    let code = result.1.as_ref();
+
+    let two_fa_data = serde_json::json!({
+        "email": random_email,
+        "loginAttemptId": json_body.login_attempt_id,
+        "2FACode": code
+    });
+
+    let response = app.verify_2fa(&two_fa_data).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        200
+    );
+
+    let auth_cookie = response
+    .cookies()
+    .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+    .expect("No auth cookie found");
+
+    assert!(!auth_cookie.value().is_empty());
+
+    let response = app.verify_2fa(&two_fa_data).await;
+
+    assert_eq!(
+        response.status().as_u16(),
+        401
+    );
 }

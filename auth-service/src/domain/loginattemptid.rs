@@ -25,3 +25,16 @@ impl AsRef<str> for LoginAttemptId {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_login_attempt_id_parse() {
+        let attempt_id = "ebfabdee-d0ca-416d-b4de-a0b01f5b2ec5".to_string();
+
+        let result = LoginAttemptId::parse(attempt_id.clone()).is_ok();
+        assert_eq!(result, true)
+    }   
+}

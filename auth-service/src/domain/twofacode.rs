@@ -27,3 +27,16 @@ impl AsRef<str> for TwoFACode {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_two_fa_code_parse() {
+        let fa_code = "999999".to_string();
+
+        let result = TwoFACode::parse(fa_code).is_ok();
+        assert_eq!(result, true)
+    }
+}

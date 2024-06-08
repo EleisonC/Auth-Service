@@ -19,12 +19,8 @@ impl TwoFACodeStore for HashmapTwoFACodeStore{
         login_attempt_id: LoginAttemptId,
         code: TwoFACode
     ) -> Result<(), TwoFACodeStoreError> {
-
-        if self.codes.insert(email, (login_attempt_id, code)).is_none() {
-            Ok(())
-        } else  {
-            return Err(TwoFACodeStoreError::UnexpectedError)
-        }
+        self.codes.insert(email, (login_attempt_id, code));
+        Ok(())
     }
 
     async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {

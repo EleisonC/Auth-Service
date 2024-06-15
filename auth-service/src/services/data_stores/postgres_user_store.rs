@@ -7,6 +7,7 @@ use argon2::{
 };
 
 use sqlx::PgPool;
+use tokio::task::spawn_blocking;
 
 use crate::domain::{
     data_stores::{UserStore, UserStoreError},
@@ -28,18 +29,30 @@ impl PostgresUserStore {
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
-        sqlx::query!(
+        let pass = user.password.clone();
+        let password_hash = spawn_blocking(move || compute_password_hash(pass.as_ref()))
+            .await
+            .map_err(|_| UserStoreError::UnexpectedError)?;
+        // let user_hash = password_hash.map_err(|_| Err(UserStoreError::UnexpectedError))?;
+        let user_hash;
+        if let Ok(hash) = password_hash {
+            user_hash = hash;
+        } else {
+            return Err(UserStoreError::UnexpectedError)
+        };
+
+        sqlx::query(
             r#"
             INSERT INTO users (email, password_hash, requires_2fa)
             VALUES ($1, $2, $3)
-            "#,
-            user.email.as_ref(),
-            user.password.as_ref(),
-            user.requires2fa
+            "#
         )
+        .bind(user.email.as_ref())
+        .bind(user_hash)
+        .bind(user.requires2fa)
         .execute(&self.pool)
         .await
-        .map_err(|_|UserStoreError::UnexpectedError);
+        .map_err(|_|UserStoreError::UserAlreadyExists)?;
 
         Ok(())
     }
@@ -47,7 +60,9 @@ impl UserStore for PostgresUserStore {
     async fn get_user(&self, email: Email) -> Result<User, UserStoreError> {
         let user_row: User = sqlx::query_as(
             r#"
-            SELECT email as email, password_hash as password, requires_2fa as requires2fa FROM users WHERE email = $1
+            SELECT email as email, password_hash, requires_2fa as requires2fa
+            FROM users 
+            WHERE email = $1
             "#
         ).bind(email.as_ref()).fetch_one(&self.pool).await.map_err(|_| UserStoreError::UserNotFound)?;
 
@@ -55,7 +70,22 @@ impl UserStore for PostgresUserStore {
     }
 
     async fn validate_user(&self, email: Email, password: Password) -> Result<(), UserStoreError> {
+        let valid_user: User = sqlx::query_as(
+            r#"
+            SELECT email, password_hash, requires_2fa as requires2fa
+            FROM users
+            WHERE email = $1
+            "#
+        ).bind(email.as_ref()).fetch_one(&self.pool).await.map_err(|e| {
+            eprintln!("Error fetching user from database: {:?}", e);
+            UserStoreError::UserNotFound
+        })?;
 
+        if verify_password_hash(valid_user.password.as_ref(), password.as_ref()).is_err() {
+            return Err(UserStoreError::InvalidCredentials)
+        }
+
+        Ok(())
     }
 }
 
@@ -70,6 +100,16 @@ fn verify_password_hash(
         .map_err(|e| e.into())
 }
 
-fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
-    
+fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let salt = SaltString::generate(&mut rand::thread_rng());
+
+    let password_hash = Argon2::new(
+        Algorithm::Argon2id,
+        Version::V0x13,
+        Params::new(15000, 2, 1, None)?
+    )
+    .hash_password(password.as_bytes(), &salt)?
+    .to_string();
+
+    Ok(password_hash)
 }

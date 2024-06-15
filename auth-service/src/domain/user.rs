@@ -6,9 +6,8 @@ use super::{Email, Password};
 pub struct User {
     #[sqlx(flatten)]
     pub email: Email,
-    #[sqlx(rename = "password_hash", flatten)]
+    #[sqlx(flatten, rename = "password_hash")]
     pub password: Password,
-    #[sqlx(rename = "requires_2fa")]
     pub requires2fa: bool
 }
 

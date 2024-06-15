@@ -14,7 +14,8 @@ services:
   auth-service:
     # TODO: change "letsgetrusty" to your Docker Hub username
     image: redwallet212/auth-service
-    restart: "always" # automatically restart container when server crashes
+    restart: always # automatically restart container when server crashes
+    container_name: auth-service
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
@@ -25,13 +26,14 @@ services:
   db:
     image: postgres:15.2-alpine
     restart: always
+    container_name: db
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - db:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
 
 volumes:
-  db:
+  db_data:
     driver: local

@@ -1,4 +1,5 @@
-use auth_service::{app_state::AppState, services::{self, HashmapTwoFACodeStore}, utils::constants::test, Application};
+use auth_service::{app_state::AppState, get_postgres_pool, services::{self, HashmapTwoFACodeStore}, utils::constants::{test, DATABASE_URL}, Application};
+use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
 use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -14,7 +15,9 @@ pub struct TestApp {
 
 impl  TestApp {
     pub async fn new() -> Self {
-        let test_user_store = Arc::new(RwLock::new(services::HashmapUserStore::default()));
+        let pg_pool = configure_postgresql().await;
+
+        let test_user_store = Arc::new(RwLock::new(services::PostgresUserStore::new(pg_pool)));
         let test_banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
         let two_fa_code_store = Arc::new(RwLock::new(services::HashmapTwoFACodeStore::default()));
         let email_client = Arc::new(RwLock::new(services::MockEmailClient::default()));
@@ -110,4 +113,43 @@ impl  TestApp {
 
 pub fn get_random_email() -> String {
     format!("{}@example.com", Uuid::new_v4())
+}
+
+async fn configure_postgresql() -> PgPool {
+    let postgresql_conn_url = DATABASE_URL.to_owned();
+    let db_name = Uuid::new_v4().to_string();
+
+    configure_database(&postgresql_conn_url, &db_name).await;
+
+    let postgres_conn_url_with_db = format!("{}/{}",
+        postgresql_conn_url, db_name);
+
+    get_postgres_pool(&postgres_conn_url_with_db)
+        .await
+        .expect("Failed to create Postgres connection pool!")
+}
+
+async fn configure_database(db_conn_string: &str, db_name: &str) {
+    let connection = PgPoolOptions::new()
+        .connect(db_conn_string)
+        .await
+        .expect("Failed to create Postgres connection pool.");
+
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, db_name).as_str())
+        .await
+        .expect("Failed to create database.");
+
+
+    let db_conn_string = format!("{}/{}", db_conn_string, db_name);
+
+    let connection = PgPoolOptions::new()
+        .connect(&db_conn_string)
+        .await
+        .expect("Failed to create Postgres connection pool.");
+
+    sqlx::migrate!()
+        .run(&connection)
+        .await
+        .expect("Failed to migrate the database")
 }

@@ -1,4 +1,4 @@
-#[derive(Eq, Hash, Clone, Debug, PartialEq)]
+#[derive(Eq, Hash, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct Password(String);
 
 impl Password {

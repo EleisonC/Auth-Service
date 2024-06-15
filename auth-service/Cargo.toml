@@ -21,7 +21,7 @@ dotenvy = "0.15.7"
 lazy_static = "1.4.0"
 url = "2"
 rand = "0.8.5"
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "offline", "migrate"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio-rustls", "postgres", "migrate"] }
 argon2 = { version = "0.5.3", features = ["std"] }
 
 [dev-dependencies]
@@ -29,4 +29,3 @@ fake = "=2.3.0"
 quickcheck = "0.9.2"
 quickcheck_macros = "0.9.1"
 reqwest = { version = "0.11.26", default-features = false, features = ["json", "cookies"] }
-sqlx-cli = { version = "0.5", features = ["postgres"] }

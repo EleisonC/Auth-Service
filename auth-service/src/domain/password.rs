@@ -18,6 +18,12 @@ impl AsRef<str> for Password {
     }
 }
 
+impl From<String> for Password {
+    fn from(password: String) -> Self {
+        Self(password)
+    }
+}
+
 impl<'r> FromRow<'r, PgRow> for Password {
     fn from_row(row: &'r PgRow) -> Result<Self, Error> {
         let pass_hash = row.try_get("password_hash")?;

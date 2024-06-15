@@ -41,15 +41,12 @@ impl UserStore for PostgresUserStore {
             return Err(UserStoreError::UnexpectedError)
         };
 
-        sqlx::query(
+        sqlx::query!(
             r#"
             INSERT INTO users (email, password_hash, requires_2fa)
             VALUES ($1, $2, $3)
-            "#
+            "#, user.email.as_ref(), user_hash, user.requires2fa
         )
-        .bind(user.email.as_ref())
-        .bind(user_hash)
-        .bind(user.requires2fa)
         .execute(&self.pool)
         .await
         .map_err(|_|UserStoreError::UserAlreadyExists)?;
@@ -58,25 +55,28 @@ impl UserStore for PostgresUserStore {
     }
 
     async fn get_user(&self, email: Email) -> Result<User, UserStoreError> {
-        let user_row: User = sqlx::query_as(
+        let user_row = sqlx::query_as!(User,
             r#"
-            SELECT email as email, password_hash, requires_2fa as requires2fa
+            SELECT email as email, password_hash as password, requires_2fa as requires2fa
             FROM users 
             WHERE email = $1
-            "#
-        ).bind(email.as_ref()).fetch_one(&self.pool).await.map_err(|_| UserStoreError::UserNotFound)?;
+            "#,
+            email.as_ref()
+        ).fetch_one(&self.pool).await.map_err(|_| UserStoreError::UserNotFound)?;
 
         Ok(user_row)
     }
 
     async fn validate_user(&self, email: Email, password: Password) -> Result<(), UserStoreError> {
-        let valid_user: User = sqlx::query_as(
+        let valid_user: User = sqlx::query_as!(
+            User,
             r#"
-            SELECT email, password_hash, requires_2fa as requires2fa
+            SELECT email, password_hash as password, requires_2fa as requires2fa
             FROM users
             WHERE email = $1
-            "#
-        ).bind(email.as_ref()).fetch_one(&self.pool).await.map_err(|e| {
+            "#,
+            email.as_ref()
+        ).fetch_one(&self.pool).await.map_err(|e| {
             eprintln!("Error fetching user from database: {:?}", e);
             UserStoreError::UserNotFound
         })?;

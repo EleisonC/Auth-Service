@@ -20,6 +20,12 @@ impl AsRef<str> for Email {
     }
 }
 
+impl From<String> for Email {
+    fn from(email: String) -> Self {
+        Self(email)
+    }
+}
+
 impl<'r> FromRow<'r, PgRow> for Email {
     fn from_row(row: &'r PgRow) -> Result<Self, Error> {
         let email_text = row.try_get("email")?;

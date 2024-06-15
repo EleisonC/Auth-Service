@@ -1,8 +1,12 @@
+use sqlx::FromRow;
+
 use super::{Email, Password};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, FromRow)]
 pub struct User {
+    #[sqlx(flatten)]
     pub email: Email,
+    #[sqlx(flatten)]
     pub password: Password,
     pub requires2fa: bool
 }

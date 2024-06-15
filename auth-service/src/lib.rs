@@ -1,11 +1,12 @@
 use std::error::Error;
 use axum::{
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::post,
     serve::Serve, Router,
     http::{Method, StatusCode},
     Json
 };
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower_http::{services::ServeDir, cors::CorsLayer};
 use app_state::AppState;
 use domain::AuthAPIError;
@@ -93,18 +94,6 @@ impl Application {
     }
 }
 
-// async fn login() -> impl IntoResponse {
-//     StatusCode::OK.into_response()
-// }
-
-// async fn logout() -> impl IntoResponse {
-//     StatusCode::OK.into_response()
-// }
-
-// async fn verify_2fa() -> impl IntoResponse {
-//     StatusCode::OK.into_response()
-// }
-
-// async fn verify_token() -> impl IntoResponse {
-//     StatusCode::OK.into_response()
-// }
+pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new().max_connections(5).connect(url).await
+}

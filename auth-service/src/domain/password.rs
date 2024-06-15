@@ -1,3 +1,4 @@
+use sqlx::{postgres::PgRow, Error, FromRow, Row};
 #[derive(Eq, Hash, Clone, Debug, PartialEq)]
 pub struct Password(String);
 
@@ -14,6 +15,19 @@ impl Password {
 impl AsRef<str> for Password {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<String> for Password {
+    fn from(password: String) -> Self {
+        Self(password)
+    }
+}
+
+impl<'r> FromRow<'r, PgRow> for Password {
+    fn from_row(row: &'r PgRow) -> Result<Self, Error> {
+        let pass_hash = row.try_get("password_hash")?;
+        Ok(Password(pass_hash))
     }
 }
 

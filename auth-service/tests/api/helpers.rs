@@ -1,4 +1,4 @@
-use auth_service::{app_state::AppState, get_postgres_pool, services::{self, HashmapTwoFACodeStore}, utils::constants::{test, DATABASE_URL}, Application};
+use auth_service::{app_state::AppState, get_postgres_pool, get_redis_client, services::{self, HashmapTwoFACodeStore}, utils::constants::{test, DATABASE_URL, DEFAULT_REDIS_HOSTNAME}, Application};
 use sqlx::{postgres::{PgConnectOptions, PgPoolOptions}, Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use std::{str::FromStr, sync::Arc};
@@ -19,9 +19,10 @@ impl  TestApp {
     pub async fn new() -> Self {
         let db_name = Uuid::new_v4().to_string();
         let pg_pool = configure_postgresql(&db_name).await;
+        let redis_client = Arc::new(RwLock::new(configure_redis()));
 
         let test_user_store = Arc::new(RwLock::new(services::PostgresUserStore::new(pg_pool)));
-        let test_banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
+        let test_banned_token_store = Arc::new(RwLock::new(services::RedisBannedTokenStore::new(redis_client)));
         let two_fa_code_store = Arc::new(RwLock::new(services::HashmapTwoFACodeStore::default()));
         let email_client = Arc::new(RwLock::new(services::MockEmailClient::default()));
 
@@ -204,4 +205,13 @@ async fn delete_database(db_name: &str) {
             .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
             .await
             .expect("Failed to drop the database.");
+}
+
+fn configure_redis() -> redis::Connection {
+    let redis_hostname = DEFAULT_REDIS_HOSTNAME.to_owned();
+
+    get_redis_client(redis_hostname)
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }

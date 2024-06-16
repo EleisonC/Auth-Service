@@ -10,8 +10,8 @@ async fn main() {
     let redis_client = Arc::new(RwLock::new(configure_redis()));
 
     let user_store = Arc::new(RwLock::new(services::PostgresUserStore::new(pg_pool)));
-    let banned_token_store = Arc::new(RwLock::new(services::RedisBannedTokenStore::new(redis_client)));
-    let two_fa_code_store = Arc::new(RwLock::new(services::HashmapTwoFACodeStore::default()));
+    let banned_token_store = Arc::new(RwLock::new(services::RedisBannedTokenStore::new(redis_client.clone())));
+    let two_fa_code_store = Arc::new(RwLock::new(services::RedisTwoFACodeStore::new(redis_client)));
     let email_client = Arc::new(RwLock::new(services::MockEmailClient::default()));
 
     let app_state = AppState::new(

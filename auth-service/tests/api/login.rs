@@ -5,7 +5,7 @@ use crate::helpers::{TestApp, get_random_email};
 
 #[tokio::test]
 async fn should_return_422_login_if_malformed_credentials() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -42,11 +42,12 @@ async fn should_return_422_login_if_malformed_credentials() {
             invalid_data
         )
     }
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_login_if_invalid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -88,11 +89,12 @@ async fn should_return_400_login_if_invalid_input() {
         )
     }
 
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_login_if_incorrect_credentials() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -130,11 +132,12 @@ async fn should_return_401_login_if_incorrect_credentials() {
             data
         )
     }
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_login_if_valid_credentials_and_2fa_disabled() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -169,11 +172,13 @@ async fn should_return_200_login_if_valid_credentials_and_2fa_disabled() {
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -208,9 +213,11 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
 
     assert_eq!(json_body.message, "2FA required".to_owned());
 
-    let test_store = app.two_fa_code_store.read().await;
+    let binding = app.two_fa_code_store.clone();
+    let test_store = binding.read().await;
     let email = Email::parse(random_email).unwrap();
     let result = test_store.get_code(&email).await.unwrap();
 
-    assert_eq!(result.0.as_ref(), json_body.login_attempt_id)
+    assert_eq!(result.0.as_ref(), json_body.login_attempt_id);
+    app.clean_up().await;
 }

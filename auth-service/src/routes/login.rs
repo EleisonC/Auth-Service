@@ -45,7 +45,6 @@ pub async fn login(
     let user_store = state.user_store.read().await;
 
     if user_store.validate_user(email.clone(), password.clone()).await.is_err() {
-        println!("We get here error 500");
         return (jar, Err(AuthAPIError::IncorrectCredentials))
     }
 

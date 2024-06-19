@@ -16,6 +16,7 @@ pub struct SignupResponse {
     pub message: String
 }
 
+#[tracing::instrument(name = "Signup", skip_all, err(Debug))]
 pub async fn signup(State(state): State<AppState>, Json(request): Json<SignupRequest>) -> Result<impl IntoResponse, AuthAPIError> {
     let email = Email::parse(request.email.clone()).map_err(|_| AuthAPIError::InvalidCredentials)?;
     let password = Password::parse(request.password.clone()).map_err(|_| AuthAPIError::InvalidCredentials)?;

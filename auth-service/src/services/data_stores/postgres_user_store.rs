@@ -42,7 +42,7 @@ impl UserStore for PostgresUserStore {
         )
         .execute(&self.pool)
         .await
-        .map_err(|_|UserStoreError::UserAlreadyExists)?;
+        .map_err(|_|UserStoreError::UnexpectedError)?;
 
         Ok(())
     }

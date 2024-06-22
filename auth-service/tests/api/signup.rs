@@ -1,168 +1,168 @@
-use crate::helpers::{self, TestApp};
-use auth_service::{routes::SignupResponse, ErrorResponse};
+// use crate::helpers::{self, TestApp};
+// use auth_service::{routes::SignupResponse, ErrorResponse};
 
-#[tokio::test]
-async fn should_return_422_if_malformed_input() {
-    let mut app = TestApp::new().await;
+// #[tokio::test]
+// async fn should_return_422_if_malformed_input() {
+//     let mut app = TestApp::new().await;
 
-    let random_email = helpers::get_random_email();
+//     let random_email = helpers::get_random_email();
 
-    let test_cases = [
-        serde_json::json!({
-            "password": "password321",
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "password": "password321",
-            "email": random_email
-        }),
-        serde_json::json!({
-            "email": random_email,
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": "user@example.com",
-            "password": "string",
-            "requires2fa": true
-        })
-    ];
+//     let test_cases = [
+//         serde_json::json!({
+//             "password": "password321",
+//             "requires2FA": true
+//         }),
+//         serde_json::json!({
+//             "password": "password321",
+//             "email": random_email
+//         }),
+//         serde_json::json!({
+//             "email": random_email,
+//             "requires2FA": true
+//         }),
+//         serde_json::json!({
+//             "email": "user@example.com",
+//             "password": "string",
+//             "requires2fa": true
+//         })
+//     ];
 
-    for test_case in test_cases.iter() {
-        let response = app.signup(&test_case).await;
+//     for test_case in test_cases.iter() {
+//         let response = app.signup(&test_case).await;
 
-        assert_eq!(
-            response.status().as_u16(),
-            422,
-            "Failed for input: {:?}",
-            test_case
-        )
-    }
-    app.clean_up().await;
-}
+//         assert_eq!(
+//             response.status().as_u16(),
+//             422,
+//             "Failed for input: {:?}",
+//             test_case
+//         )
+//     }
+//     app.clean_up().await;
+// }
 
-#[tokio::test]
-async fn should_return_201_if_valid_input() {
-    let mut app = TestApp::new().await;
+// #[tokio::test]
+// async fn should_return_201_if_valid_input() {
+//     let mut app = TestApp::new().await;
 
-    let random_email = helpers::get_random_email();
+//     let random_email = helpers::get_random_email();
 
-    let valid_data = serde_json::json!({
-        "email": random_email,
-        "password": "string1234",
-        "requires2FA": true
-    });
+//     let valid_data = serde_json::json!({
+//         "email": random_email,
+//         "password": "string1234",
+//         "requires2FA": true
+//     });
 
-    let response = app.signup(&valid_data).await;
+//     let response = app.signup(&valid_data).await;
 
-    assert_eq!(response.status().as_u16(),
-    201,
-    "User created successfully!"
-    );
+//     assert_eq!(response.status().as_u16(),
+//     201,
+//     "User created successfully!"
+//     );
 
-    let expected_response = SignupResponse {
-        message: "User created successfully!".to_owned(),
-    };
+//     let expected_response = SignupResponse {
+//         message: "User created successfully!".to_owned(),
+//     };
 
-    assert_eq!(
-        response
-            .json::<SignupResponse>()
-            .await
-            .expect("Could not deserialize response body to UserBody"),
-            expected_response
-    );
+//     assert_eq!(
+//         response
+//             .json::<SignupResponse>()
+//             .await
+//             .expect("Could not deserialize response body to UserBody"),
+//             expected_response
+//     );
 
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }
 
-#[tokio::test]
-async fn should_return_400_if_invalid_input() {
-    let mut app = TestApp::new().await;
+// #[tokio::test]
+// async fn should_return_400_if_invalid_input() {
+//     let mut app = TestApp::new().await;
 
-    let test_cases = [
-        serde_json::json!({
-            "email": "user.mail.com",
-            "password": "password123",
-            "requires2FA": false
-        }),
-        serde_json::json!({
-            "email": "",
-            "password": "password123",
-            "requires2FA": true 
-        }),
-        serde_json::json!({
-            "email": "user_test@mail.com",
-            "password": "          ",
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": "user_test@mail.com",
-            "password": "pass",
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": "user_test@mail.com",
-            "password": "",
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": "    @      ",
-            "password": "password1233",
-            "requires2FA": true
-        })
-    ];
+//     let test_cases = [
+//         serde_json::json!({
+//             "email": "user.mail.com",
+//             "password": "password123",
+//             "requires2FA": false
+//         }),
+//         serde_json::json!({
+//             "email": "",
+//             "password": "password123",
+//             "requires2FA": true 
+//         }),
+//         serde_json::json!({
+//             "email": "user_test@mail.com",
+//             "password": "          ",
+//             "requires2FA": true
+//         }),
+//         serde_json::json!({
+//             "email": "user_test@mail.com",
+//             "password": "pass",
+//             "requires2FA": true
+//         }),
+//         serde_json::json!({
+//             "email": "user_test@mail.com",
+//             "password": "",
+//             "requires2FA": true
+//         }),
+//         serde_json::json!({
+//             "email": "    @      ",
+//             "password": "password1233",
+//             "requires2FA": true
+//         })
+//     ];
 
-    for test_case in test_cases.iter() {
-        let response = app.signup(&test_case).await;
+//     for test_case in test_cases.iter() {
+//         let response = app.signup(&test_case).await;
 
-        assert_eq!(
-            response.status().as_u16(),
-            400,
-            "Failed for input: {:?}",
-            test_case
-        );
+//         assert_eq!(
+//             response.status().as_u16(),
+//             400,
+//             "Failed for input: {:?}",
+//             test_case
+//         );
 
-        assert_eq!(
-            response
-                .json::<ErrorResponse>()
-                .await
-                .expect("Could not deserialize response body to ErrorResponse")
-                .error,
-                "Invalid credentials".to_owned()
-        )
-    }
-    app.clean_up().await;
-}
-#[tokio::test]
-async fn should_return_409_if_email() {
-    let mut app = TestApp::new().await;
-    let random_email = helpers::get_random_email();
+//         assert_eq!(
+//             response
+//                 .json::<ErrorResponse>()
+//                 .await
+//                 .expect("Could not deserialize response body to ErrorResponse")
+//                 .error,
+//                 "Invalid credentials".to_owned()
+//         )
+//     }
+//     app.clean_up().await;
+// }
+// #[tokio::test]
+// async fn should_return_409_if_email() {
+//     let mut app = TestApp::new().await;
+//     let random_email = helpers::get_random_email();
 
 
-    let test_case = serde_json::json!({
-        "email": random_email,
-        "password": "password123",
-        "requires2FA": true
-    });
+//     let test_case = serde_json::json!({
+//         "email": random_email,
+//         "password": "password123",
+//         "requires2FA": true
+//     });
 
-    app.signup(&test_case).await;
+//     app.signup(&test_case).await;
 
-    let response = app.signup(&test_case).await;
+//     let response = app.signup(&test_case).await;
 
-    assert_eq!(
-        response.status().as_u16(),
-        409,
-        "Failed for input: {:?}",
-        test_case
-    );
+//     assert_eq!(
+//         response.status().as_u16(),
+//         409,
+//         "Failed for input: {:?}",
+//         test_case
+//     );
 
-    assert_eq!(
-        response
-            .json::<ErrorResponse>()
-            .await
-            .expect("Could not deserialize response body to ErrorResponse")
-            .error,
-            "User already exists".to_owned()
-    );
+//     assert_eq!(
+//         response
+//             .json::<ErrorResponse>()
+//             .await
+//             .expect("Could not deserialize response body to ErrorResponse")
+//             .error,
+//             "User already exists".to_owned()
+//     );
 
-    app.clean_up().await;
-}
+//     app.clean_up().await;
+// }

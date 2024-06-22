@@ -31,10 +31,13 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
+        log_error_chain(&self);
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error"),
+            AuthAPIError::UnexpectedError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error")
+            },
             AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
             AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token")
@@ -46,6 +49,22 @@ impl IntoResponse for AuthAPIError {
     
         (status, body).into_response()
     }
+}
+
+fn log_error_chain(e: &(dyn Error + 'static)) {
+    let separator = "\n-----------------------------------------------------------------------------------\n";
+    let mut report = format!("{}{:?}\n", separator, e);
+
+    let mut current = e.source();
+
+    while let Some(cause) = current {
+        let str = format!("Caused by \n\n{:?}", cause);
+        report = format!("{}\n{}", report, str);
+        current = cause.source();
+    }
+
+    report = format!("{}\n{}", report, separator);
+    tracing::error!("{}", report);
 }
 
 pub struct Application {
@@ -74,8 +93,8 @@ impl Application {
             .nest_service("/", ServeDir::new("assets"))
             .route("/signup", post(routes::signup))
             .route("/login", post(routes::login))
-            .route("/logout", post(routes::logout))
-            .route("/verify-2fa", post(routes::verify_2fa))
+            // .route("/logout", post(routes::logout))
+            // .route("/verify-2fa", post(routes::verify_2fa))
             .route("/verify-token", post(routes::verify_token))
             .with_state(app_state.clone())
             .layer(cors)

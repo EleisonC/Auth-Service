@@ -1,5 +1,6 @@
 use sqlx::{postgres::PgRow, Error, FromRow, Row};
 use validator::validate_email;
+use color_eyre::eyre::Result;
 
 #[derive(Eq, Hash, Clone, Debug, PartialEq)]
 pub struct Email(String);

@@ -6,7 +6,9 @@ use auth_service::{app_state::AppState, get_postgres_pool, get_redis_client, ser
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
+    color_eyre::install().expect("Failed to install color_eyre");
+    init_tracing().expect("Failed to initialize tracing");
+    
     let pg_pool = configure_postgresql().await;
     let redis_client = Arc::new(RwLock::new(configure_redis()));
 

@@ -1,15 +1,13 @@
 use uuid::{Uuid};
+use color_eyre::eyre::{Context, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoginAttemptId(String);
 
 impl LoginAttemptId {
-    pub fn parse(id: String) -> Result<Self, String> {
-       if let Ok(id) = Uuid::parse_str(&id) {
-            Ok(Self(id.to_string()))
-        } else {
-            return Err(format!("Error during parse"))
-        }
+    pub fn parse(id: String) -> Result<Self> {
+        let parsed_id = Uuid::parse_str(&id).wrap_err("invalid login attempt id")?;
+        Ok(Self(parsed_id.to_string()))
     }
 }
 

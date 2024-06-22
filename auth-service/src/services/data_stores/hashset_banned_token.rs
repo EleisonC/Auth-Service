@@ -14,11 +14,8 @@ impl BannedTokenStore for HashsetBannedTokenStore {
         Ok(())
     }
 
-    async fn check_banned_token(&self, token: String) -> Result<String, BannedTokenStoreError> {
-        if !self.banned_tokens.contains(&token) {
-            return Err(BannedTokenStoreError::TokenNotFound)
-        }
-        Ok(format!("Token {} is banned", token))
+    async fn check_banned_token(&self, token: String) -> Result<bool, BannedTokenStoreError> {
+        Ok(self.banned_tokens.contains(&token))
     }
 }
 
@@ -32,9 +29,9 @@ mod tests {
 
         let test_token = "thisewweeqeqweqwe321321343424324=-w".to_string();
 
-        let result = store.store_banned_token(test_token).await;
+        let result = store.store_banned_token(test_token).await.unwrap();
 
-        assert_eq!(result, Ok(())) 
+        assert_eq!(result, ())
     }
 
     #[tokio::test]
@@ -45,9 +42,9 @@ mod tests {
 
         store.store_banned_token(test_token.clone()).await.unwrap();
 
-        let result = store.check_banned_token(test_token.clone()).await;
+        let result = store.check_banned_token(test_token.clone()).await.unwrap();
 
-        assert_eq!(result, Ok(format!("Token {} is banned", test_token))) 
+        assert_eq!(result, true)
     }
 
     #[tokio::test]
@@ -56,9 +53,9 @@ mod tests {
 
         let test_token = "thisewweeqeqweqwe321321343424324=-w".to_string();
 
-        let result = store.check_banned_token(test_token.clone()).await;
+        let result = store.check_banned_token(test_token.clone()).await.unwrap();
 
-        assert_eq!(result, Err(BannedTokenStoreError::TokenNotFound)) 
+        assert_eq!(result, false)
     }
 }
 

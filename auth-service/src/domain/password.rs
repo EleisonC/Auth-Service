@@ -1,4 +1,5 @@
 use sqlx::{postgres::PgRow, Error, FromRow, Row};
+use color_eyre::eyre::Result;
 #[derive(Eq, Hash, Clone, Debug, PartialEq)]
 pub struct Password(String);
 

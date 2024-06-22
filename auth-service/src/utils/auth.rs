@@ -2,12 +2,13 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
 
 use crate::{app_state::BannedTokenStoreType, domain::{email::Email, AuthAPIError}};
 
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET};
 
-pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
+pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>> {
     let token = generate_auth_token(email)?;
     Ok(create_auth_cookie(token))
 }
@@ -31,48 +32,54 @@ pub enum GenerateTokenError {
 
 pub const TOKEN_TTL_SECONDS: i64 = 600;
 
-fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
+fn generate_auth_token(email: &Email) -> Result<String> {
     let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
-            .ok_or(GenerateTokenError::UnexpectedError)?;
+            .wrap_err("failed to create 10 minute time delta")?;
 
     let exp = Utc::now()
         .checked_add_signed(delta)
-        .ok_or(GenerateTokenError::UnexpectedError)?
+        .ok_or(eyre!("failed to add 10 minutes to current time"))?
         .timestamp();
 
     let exp: usize = exp
         .try_into()
-        .map_err(|_|
-        GenerateTokenError::UnexpectedError)?;
+        .wrap_err(format!("failed to cast exp time to usize. exp time: {}", exp))?;
 
     let sub = email.as_ref().to_owned();
 
     let claims = Claims {sub, exp};
 
-    create_token(&claims).map_err(GenerateTokenError::TokenError)
+    create_token(&claims)
 }
 
-pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreType) -> Result<Claims, AuthAPIError> {
+pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreType) -> Result<Claims> {
 
     let banned_tk_store = &banned_token_store.read().await;
-    if banned_tk_store.check_banned_token(token.to_string()).await.is_ok() {
-        return Err(AuthAPIError::InvalidToken); // Or another appropriate error
-    }
+    match banned_tk_store.check_banned_token(token.to_string()).await {
+        Ok(value) => {
+            if value {
+                return Err(eyre!("token is banned"));
+            }
+        }  // Or another appropriate error
+        Err(e) => return Err(e.into()),
+    };
 
     decode::<Claims>(
         token,
         &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
         &Validation::default(),
     )
-    .map(|data| data.claims).map_err(|_| AuthAPIError::InvalidToken)
+    .map(|data| data.claims)
+    .wrap_err("failed to decode token")
 }
 
-fn create_token(claims: &Claims) -> Result<String, jsonwebtoken::errors::Error> {
+fn create_token(claims: &Claims) -> Result<String> {
     encode(
         &jsonwebtoken::Header::default(),
         &claims,
         &EncodingKey::from_secret(JWT_SECRET.as_bytes()),
     )
+    .wrap_err("failed to create token")
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -157,7 +164,8 @@ mod tests {
             banned_tk_store.store_banned_token(token.clone()).await.unwrap();
         }
 
-        let result = validate_token(&token, banned_token_store).await;
-        assert_eq!(result, Err(AuthAPIError::InvalidToken));
+        let result = validate_token(&token, banned_token_store).await.is_err();
+
+        assert_eq!(result, true);
     }
 }

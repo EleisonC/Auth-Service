@@ -6,7 +6,7 @@ use argon2::{
     Version
 };
 
-use color_eyre::eyre::{eyre, Context, Result};
+use color_eyre::eyre::{Context, Result};
 use sqlx::PgPool;
 
 use crate::domain::{
@@ -63,9 +63,9 @@ impl UserStore for PostgresUserStore {
         .map(|row| {
             Ok(User {
                 email: Email::parse(row.email)
-                    .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
+                    .map_err(UserStoreError::UnexpectedError)?,
                 password: Password::parse(row.password_hash)
-                    .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
+                    .map_err(UserStoreError::UnexpectedError)?,
                 requires2fa: row.requires_2fa,
             })
         })
@@ -88,11 +88,11 @@ impl UserStore for PostgresUserStore {
             UserStoreError::UserNotFound
         })?;
 
-        if verify_password_hash(valid_user.password.as_ref().to_string(), password.as_ref().to_string()).await.is_err() {
-            return Err(UserStoreError::InvalidCredentials)
-        }
-
-        Ok(())
+        verify_password_hash(
+            valid_user.password.as_ref().to_string(),
+            password.as_ref().to_string())
+        .await
+        .map_err(|_| UserStoreError::InvalidCredentials)
     }
 }
 

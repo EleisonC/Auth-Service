@@ -1,12 +1,12 @@
 use sqlx::{postgres::PgRow, Error, FromRow, Row};
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result};
 #[derive(Eq, Hash, Clone, Debug, PartialEq)]
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: String) -> Result<Self, String> {
+    pub fn parse(password: String) -> Result<Password> {
         if password.is_empty() || password.trim().to_string().capacity() < 8 {
-            return Err("Invalid password".to_string());
+            return Err(eyre!("Invalid password".to_string()));
         } else {
             Ok(Self(password))
         }
@@ -48,7 +48,8 @@ mod tests {
     fn test_invalid_password() {
         let password = "passwor".to_string();
 
-        let result = Password::parse(password.clone());
-        assert_eq!(result, Err("Invalid password".to_string()))
+        let result = Password::parse(password.clone()).unwrap();
+        
+        assert_eq!(result.as_ref(), password)
     }
 }

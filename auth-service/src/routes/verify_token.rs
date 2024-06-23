@@ -8,6 +8,7 @@ pub struct TokenVerificationReq {
     pub token: String
 }
 
+#[tracing::instrument(name = "Verify token", skip_all)]
 pub async fn verify_token(State(state): State<AppState>, Json(request): Json<TokenVerificationReq>) -> Result<impl IntoResponse, AuthAPIError> {
     
     let valid_token = &request.token;
@@ -17,5 +18,5 @@ pub async fn verify_token(State(state): State<AppState>, Json(request): Json<Tok
         return Err(AuthAPIError::InvalidToken)
     }
 
-    Ok(StatusCode::OK.into_response())
+    Ok(StatusCode::OK)
 }

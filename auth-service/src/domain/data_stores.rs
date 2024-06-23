@@ -1,5 +1,5 @@
 use super::{Email, LoginAttemptId, Password, TwoFACode, User};
-use color_eyre::eyre::{Report, Result};
+use color_eyre::eyre::{Report, Result, eyre};
 use rand::Rng;
 use thiserror::Error;
 

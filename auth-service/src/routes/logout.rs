@@ -7,7 +7,7 @@ use crate::{
     }
 };
 
-
+#[tracing::instrument(name = "Logout", skip_all)]
 pub async fn logout(State(state): State<AppState>,jar: CookieJar) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     let cookie = match  jar.get(JWT_COOKIE_NAME) {
         Some(cookie) => cookie,
@@ -31,6 +31,6 @@ pub async fn logout(State(state): State<AppState>,jar: CookieJar) -> (CookieJar,
             let jar = jar.remove(JWT_COOKIE_NAME);
             (jar, Ok(StatusCode::OK))
         }
-        Err(_) => (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e) => (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
     }
 }

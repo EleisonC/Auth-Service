@@ -4,16 +4,17 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
 
-use crate::{app_state::BannedTokenStoreType, domain::{email::Email, AuthAPIError}};
+use crate::{app_state::BannedTokenStoreType, domain::email::Email};
 
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET};
 
+#[tracing::instrument(name= "Generate an auth cookie", skip_all)]
 pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>> {
     let token = generate_auth_token(email)?;
     Ok(create_auth_cookie(token))
 }
 
-
+#[tracing::instrument(name= "Create an auth cookie", skip_all)]
 fn create_auth_cookie(token: String) -> Cookie<'static> {
     let cookie = Cookie::build((JWT_COOKIE_NAME, token))
                 .path("/")
@@ -32,6 +33,7 @@ pub enum GenerateTokenError {
 
 pub const TOKEN_TTL_SECONDS: i64 = 600;
 
+#[tracing::instrument(name= "Generate an auth token", skip_all)]
 fn generate_auth_token(email: &Email) -> Result<String> {
     let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
             .wrap_err("failed to create 10 minute time delta")?;
@@ -52,6 +54,7 @@ fn generate_auth_token(email: &Email) -> Result<String> {
     create_token(&claims)
 }
 
+#[tracing::instrument(name= "Validate an auth token", skip_all)]
 pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreType) -> Result<Claims> {
 
     let banned_tk_store = &banned_token_store.read().await;
@@ -73,6 +76,7 @@ pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreTyp
     .wrap_err("failed to decode token")
 }
 
+#[tracing::instrument(name= "Create a json web token", skip_all)]
 fn create_token(claims: &Claims) -> Result<String> {
     encode(
         &jsonwebtoken::Header::default(),

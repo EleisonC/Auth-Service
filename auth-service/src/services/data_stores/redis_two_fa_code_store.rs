@@ -23,6 +23,7 @@ impl RedisTwoFACodeStore {
 
 #[async_trait::async_trait]
 impl TwoFACodeStore for RedisTwoFACodeStore {
+    #[tracing::instrument(name= "Add 2fa code to Redis", skip_all)]
     async fn add_code(&mut self, 
         email: Email,
         login_attempt_id: LoginAttemptId,
@@ -45,6 +46,7 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
         Ok(())
     }
 
+    #[tracing::instrument(name= "Remove 2fa code from Redis", skip_all)]
     async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {
         let mut conn = self.conn.write().await;
         let key = get_key(email);

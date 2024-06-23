@@ -1,17 +1,32 @@
 use sqlx::{postgres::PgRow, Error, FromRow, Row};
 use validator::validate_email;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result};
+use std::hash::Hash;
 
-#[derive(Eq, Hash, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: String) -> Result<Self, String> {
+    pub fn parse(email: String) -> Result<Email> {
         if !validate_email(&email) {
-            return Err("Invalid email address".to_string());
+            return Err(eyre!("Invalid email address"));
         } else {
             Ok(Self(email))
         }
+    }
+}
+
+impl PartialEq for Email {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for Email {}
+
+impl Hash for Email {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 

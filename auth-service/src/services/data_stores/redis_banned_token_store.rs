@@ -22,6 +22,7 @@ impl RedisBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
+    #[tracing::instrument(name= "Store a banned token to Redis", skip_all)]
     async fn store_banned_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         let redis_token_key = get_key(&token);
         let mut store_conn = self.conn.write().await;
@@ -40,6 +41,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
 
     }
 
+    #[tracing::instrument(name= "Check for banned token in Redis", skip_all)]
     async fn check_banned_token(&self, token: String) -> Result<bool, BannedTokenStoreError> {
         let redis_token_key = get_key(&token);
         let mut store_conn = self.conn.write().await;

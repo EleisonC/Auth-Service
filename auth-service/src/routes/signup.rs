@@ -1,12 +1,13 @@
 use axum::{http::StatusCode, extract::State,
     response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
+use secrecy::Secret;
 
 use crate::{app_state::AppState, domain::{AuthAPIError, Email, User, UserStoreError, Password}};
 #[derive(Deserialize)]
 pub struct SignupRequest {
     pub email:String,
-    pub password: String,
+    pub password: Secret<String>,
     #[serde(rename = "requires2FA")]
     pub requires_2fa: bool,
 }

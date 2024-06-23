@@ -7,11 +7,12 @@ use crate::{
     domain::{AuthAPIError, Email, Password, LoginAttemptId, TwoFACode},
     utils::auth::generate_auth_cookie
 };
+use secrecy::Secret;
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
     pub email: String,
-    pub password: String,
+    pub password: Secret<String>,
 }
 
 #[derive(Debug, Serialize)]

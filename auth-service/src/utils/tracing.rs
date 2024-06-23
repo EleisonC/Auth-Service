@@ -11,7 +11,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 pub fn init_tracing() -> Result<()> {
     let fmt_layer = fmt::layer().compact(); //compact format
 
-    let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("info"))?;
+    let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("sqlx=debug,info"))?;
     tracing_subscriber::registry()
         .with(filter_layer)
         .with(fmt_layer)

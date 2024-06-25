@@ -1,6 +1,7 @@
 use super::{Email, LoginAttemptId, Password, TwoFACode, User};
 use color_eyre::eyre::{Report, Result, eyre};
 use rand::Rng;
+use secrecy::Secret;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -43,8 +44,8 @@ pub enum BannedTokenStoreError {
 
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
-    async fn store_banned_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
-    async fn check_banned_token(&self, token: String) -> Result<bool, BannedTokenStoreError>;
+    async fn store_banned_token(&mut self, token: Secret<String>) -> Result<(), BannedTokenStoreError>;
+    async fn check_banned_token(&self, token: Secret<String>) -> Result<bool, BannedTokenStoreError>;
 }
 
 #[derive(Debug, Error)]

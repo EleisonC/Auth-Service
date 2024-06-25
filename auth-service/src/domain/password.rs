@@ -43,7 +43,7 @@ mod tests {
     fn test_password_paser() {
         let password = Secret::new("password123".to_string());
 
-        let result = Password::parse(password).is_err();
+        let result = Password::parse(password).is_ok();
         assert!(result)
     }
 

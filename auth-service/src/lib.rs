@@ -17,6 +17,7 @@ use utils::tracing::{
     on_request,
     on_response
 };
+use secrecy::{ExposeSecret, Secret};
 
 pub mod routes;
 pub mod services;
@@ -125,8 +126,8 @@ impl Application {
     }
 }
 
-pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new().max_connections(5).connect(url).await
+pub async fn get_postgres_pool(url: &Secret<String>) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new().max_connections(5).connect(url.expose_secret()).await
 }
 
 pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {

@@ -3,6 +3,7 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
+use secrecy::{ExposeSecret, Secret};
 
 use crate::{app_state::BannedTokenStoreType, domain::email::Email};
 
@@ -15,8 +16,8 @@ pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>> {
 }
 
 #[tracing::instrument(name= "Create an auth cookie", skip_all)]
-fn create_auth_cookie(token: String) -> Cookie<'static> {
-    let cookie = Cookie::build((JWT_COOKIE_NAME, token))
+fn create_auth_cookie(token: Secret<String>) -> Cookie<'static> {
+    let cookie = Cookie::build((JWT_COOKIE_NAME, token.expose_secret().to_owned()))
                 .path("/")
                 .http_only(true)
                 .same_site(SameSite::Lax)
@@ -34,7 +35,7 @@ pub enum GenerateTokenError {
 pub const TOKEN_TTL_SECONDS: i64 = 600;
 
 #[tracing::instrument(name= "Generate an auth token", skip_all)]
-fn generate_auth_token(email: &Email) -> Result<String> {
+fn generate_auth_token(email: &Email) -> Result<Secret<String>> {
     let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
             .wrap_err("failed to create 10 minute time delta")?;
 
@@ -47,7 +48,7 @@ fn generate_auth_token(email: &Email) -> Result<String> {
         .try_into()
         .wrap_err(format!("failed to cast exp time to usize. exp time: {}", exp))?;
 
-    let sub = email.as_ref().to_owned();
+    let sub = email.as_ref().expose_secret().to_owned();
 
     let claims = Claims {sub, exp};
 
@@ -55,10 +56,10 @@ fn generate_auth_token(email: &Email) -> Result<String> {
 }
 
 #[tracing::instrument(name= "Validate an auth token", skip_all)]
-pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreType) -> Result<Claims> {
+pub async fn validate_token(token: &Secret<String>, banned_token_store: BannedTokenStoreType) -> Result<Claims> {
 
     let banned_tk_store = &banned_token_store.read().await;
-    match banned_tk_store.check_banned_token(token.to_string()).await {
+    match banned_tk_store.check_banned_token(token.to_owned()).await {
         Ok(value) => {
             if value {
                 return Err(eyre!("token is banned"));
@@ -68,8 +69,8 @@ pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreTyp
     };
 
     decode::<Claims>(
-        token,
-        &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+        token.expose_secret().as_ref(),
+        &DecodingKey::from_secret(JWT_SECRET.expose_secret().as_bytes()),
         &Validation::default(),
     )
     .map(|data| data.claims)
@@ -77,12 +78,13 @@ pub async fn validate_token(token: &str, banned_token_store: BannedTokenStoreTyp
 }
 
 #[tracing::instrument(name= "Create a json web token", skip_all)]
-fn create_token(claims: &Claims) -> Result<String> {
+fn create_token(claims: &Claims) -> Result<Secret<String>> {
     encode(
         &jsonwebtoken::Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET.as_bytes()),
+        &EncodingKey::from_secret(JWT_SECRET.expose_secret().as_bytes()),
     )
+    .map(Secret::new)
     .wrap_err("failed to create token")
 }
 
@@ -96,6 +98,7 @@ pub struct Claims {
 mod tests {
     use std::sync::Arc;
 
+    use secrecy::Secret;
     use tokio::sync::RwLock;
 
     use crate::services;
@@ -106,7 +109,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_auth_cookie() {
-        let email = Email::parse("test@example.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
         let cookie = generate_auth_cookie(&email).unwrap();
         assert_eq!(cookie.name(), JWT_COOKIE_NAME);
         assert_eq!(cookie.value().split('.').count(), 3);
@@ -117,10 +120,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_auth_cookie() {
-        let token = "test_token".to_owned();
+        let token = Secret::new("test_token".to_owned());
         let cookie = create_auth_cookie(token.clone());
         assert_eq!(cookie.name(), JWT_COOKIE_NAME);
-        assert_eq!(cookie.value(), token);
+        assert_eq!(cookie.value(), token.expose_secret());
         assert_eq!(cookie.path(), Some("/"));
         assert_eq!(cookie.http_only(), Some(true));
         assert_eq!(cookie.same_site(), Some(SameSite::Lax));
@@ -128,14 +131,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_auth_token() {
-        let email = Email::parse("test@example.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
         let result = generate_auth_token(&email).unwrap();
-        assert_eq!(result.split('.').count(), 3);
+        assert_eq!(result.expose_secret().split('.').count(), 3);
     }
 
     #[tokio::test]
     async fn test_validate_token_with_valid_token() {
-        let email = Email::parse("test@example.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
         let token = generate_auth_token(&email).unwrap();
         let banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
         let result = validate_token(&token, banned_token_store).await.unwrap();
@@ -151,7 +154,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_token_with_invalid_token() {
-        let token = "invalid_token".to_owned();
+        let token = Secret::new("invalid_token".to_owned());
         let banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
         let result = validate_token(&token, banned_token_store).await;
         assert!(result.is_err());
@@ -159,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_token_with_banned_token() {
-        let email = Email::parse("test@example.com".to_owned()).unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_owned())).unwrap();
         let token = generate_auth_token(&email).unwrap();
         let banned_token_store = Arc::new(RwLock::new(services::HashsetBannedTokenStore::default()));
 

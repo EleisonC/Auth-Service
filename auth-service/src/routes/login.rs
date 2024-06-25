@@ -7,11 +7,11 @@ use crate::{
     domain::{AuthAPIError, Email, Password, LoginAttemptId, TwoFACode},
     utils::auth::generate_auth_cookie
 };
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
+    pub email: Secret<String>,
     pub password: Secret<String>,
 }
 
@@ -80,13 +80,13 @@ async fn handle_2fa(
 
     let email_client = state.email_client.write().await;
 
-    if let Err(e) = email_client.send_email(email, login_attempt_id.as_ref(), two_fa_code.as_ref()).await {
+    if let Err(e) = email_client.send_email(email, login_attempt_id.as_ref().expose_secret(), two_fa_code.as_ref().expose_secret()).await {
         return (jar, Err(AuthAPIError::UnexpectedError(e)));
     }
 
     let two_factor = TwoFactorAuthResponse {
         message: "2FA required".to_string(),
-        login_attempt_id: login_attempt_id.as_ref().to_string()
+        login_attempt_id: login_attempt_id.as_ref().expose_secret().to_owned()
     };
 
     let response = Json(LoginResponse::TwoFactorAuth(two_factor));

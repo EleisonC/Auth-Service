@@ -39,7 +39,7 @@ impl UserStore for PostgresUserStore {
             r#"
             INSERT INTO users (email, password_hash, requires_2fa)
             VALUES ($1, $2, $3)
-            "#, user.email.as_ref(), &password_hash.expose_secret(), user.requires2fa
+            "#, user.email.as_ref().expose_secret(), &password_hash.expose_secret(), user.requires2fa
         )
         .execute(&self.pool)
         .await
@@ -56,14 +56,14 @@ impl UserStore for PostgresUserStore {
             FROM users
             WHERE email = $1
             "#,
-            email.as_ref()
+            email.as_ref().expose_secret()
         )
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| UserStoreError::UnexpectedError(e.into()))?
         .map(|row| {
             Ok(User {
-                email: Email::parse(row.email)
+                email: Email::parse(Secret::new(row.email))
                     .map_err(UserStoreError::UnexpectedError)?,
                 password: Password::parse(Secret::new(row.password_hash))
                     .map_err(UserStoreError::UnexpectedError)?,

@@ -47,13 +47,14 @@ impl TwoFACodeStore for HashmapTwoFACodeStore{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use secrecy::Secret;
 
     #[tokio::test]
     async fn test_add_code() {
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user.test@mail.com".to_string()).unwrap();
-        let login_attempt = LoginAttemptId::parse(LoginAttemptId::default().as_ref().to_string()).unwrap();
-        let code = TwoFACode::parse(TwoFACode::default().as_ref().to_string()).unwrap();
+        let email = Email::parse(Secret::new("user.test@mail.com".to_string())).unwrap();
+        let login_attempt = LoginAttemptId::parse(LoginAttemptId::default().as_ref().to_owned()).unwrap();
+        let code = TwoFACode::parse(TwoFACode::default().as_ref().to_owned()).unwrap();
 
         let result = store.add_code(email, login_attempt, code).await;
 
@@ -63,9 +64,9 @@ mod tests {
     #[tokio::test]
     async fn test_remove_code() {
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user.test@mail.com".to_string()).unwrap();
-        let login_attempt = LoginAttemptId::parse(LoginAttemptId::default().as_ref().to_string()).unwrap();
-        let code = TwoFACode::parse(TwoFACode::default().as_ref().to_string()).unwrap();
+        let email = Email::parse(Secret::new("user.test@mail.com".to_string())).unwrap();
+        let login_attempt = LoginAttemptId::parse(LoginAttemptId::default().as_ref().to_owned()).unwrap();
+        let code = TwoFACode::parse(TwoFACode::default().as_ref().to_owned()).unwrap();
 
         store.add_code(email.clone(), login_attempt, code).await.unwrap();
 
@@ -77,7 +78,7 @@ mod tests {
     #[tokio::test]
     async fn test_remove_code_not_found() {
         let mut store = HashmapTwoFACodeStore::default();
-        let email = Email::parse("user.test@mail.com".to_string()).unwrap();
+        let email = Email::parse(Secret::new("user.test@mail.com".to_string())).unwrap();
 
         let result = store.remove_code(&email).await;
 

@@ -4,6 +4,7 @@ use uuid::Uuid;
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 use reqwest::cookie::Jar;
+use secrecy::{ExposeSecret, Secret};
 
 
 pub struct TestApp {
@@ -141,17 +142,17 @@ async fn configure_postgresql(db_name: &str) -> PgPool {
 
     configure_database(&postgresql_conn_url, &db_name).await;
 
-    let postgres_conn_url_with_db = format!("{}/{}",
-        postgresql_conn_url, db_name);
+    let postgres_conn_url_with_db = Secret::new(format!("{}/{}",
+        postgresql_conn_url.expose_secret(), db_name));
 
     get_postgres_pool(&postgres_conn_url_with_db)
         .await
         .expect("Failed to create Postgres connection pool!")
 }
 
-async fn configure_database(db_conn_string: &str, db_name: &str) {
+async fn configure_database(db_conn_string: &Secret<String>, db_name: &str) {
     let connection = PgPoolOptions::new()
-        .connect(db_conn_string)
+        .connect(db_conn_string.expose_secret())
         .await
         .expect("Failed to create Postgres connection pool.");
 
@@ -161,7 +162,7 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
         .expect("Failed to create database.");
 
 
-    let db_conn_string = format!("{}/{}", db_conn_string, db_name);
+    let db_conn_string = format!("{}/{}", db_conn_string.expose_secret(), db_name);
 
     let connection = PgPoolOptions::new()
         .connect(&db_conn_string)
@@ -176,9 +177,9 @@ async fn configure_database(db_conn_string: &str, db_name: &str) {
 
 
 async fn delete_database(db_name: &str) {
-    let postgresql_conn_url: String = DATABASE_URL.to_owned();
+    let postgresql_conn_url = DATABASE_URL.to_owned();
 
-    let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
+    let connection_options = PgConnectOptions::from_str(&postgresql_conn_url.expose_secret())
         .expect("Failed to parse PostgreSQL connection string");
 
     let mut connection = PgConnection::connect_with(&connection_options)

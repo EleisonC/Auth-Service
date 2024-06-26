@@ -1,13 +1,15 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 
 use crate::{app_state::AppState, domain::AuthAPIError, utils::auth::validate_token};
 
 #[derive(Deserialize)]
 pub struct TokenVerificationReq {
-    pub token: String
+    pub token: Secret<String>
 }
 
+#[tracing::instrument(name = "Verify token", skip_all)]
 pub async fn verify_token(State(state): State<AppState>, Json(request): Json<TokenVerificationReq>) -> Result<impl IntoResponse, AuthAPIError> {
     
     let valid_token = &request.token;
@@ -17,5 +19,5 @@ pub async fn verify_token(State(state): State<AppState>, Json(request): Json<Tok
         return Err(AuthAPIError::InvalidToken)
     }
 
-    Ok(StatusCode::OK.into_response())
+    Ok(StatusCode::OK)
 }

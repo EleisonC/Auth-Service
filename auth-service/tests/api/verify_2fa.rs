@@ -1,4 +1,5 @@
 use auth_service::{domain::{Email, TwoFACodeStore}, routes::TwoFactorAuthResponse, ErrorResponse, utils::constants::JWT_COOKIE_NAME,};
+use secrecy::{ExposeSecret, Secret};
 
 use crate::helpers::{get_random_email, TestApp};
 
@@ -183,7 +184,7 @@ async fn should_return_401_if_old_code() {
     assert_eq!(json_body.message, "2FA required".to_owned());
     assert!(!json_body.login_attempt_id.is_empty());
 
-    let email = Email::parse(random_email.clone()).unwrap();
+    let email = Email::parse(Secret::new(random_email.clone())).unwrap();
     let result = app.two_fa_code_store.read().await.get_code(&email).await.unwrap();
 
     let response = app.login(&login_body).await;
@@ -198,7 +199,7 @@ async fn should_return_401_if_old_code() {
     let incorrect_data = serde_json::json!({
         "email": random_email,
         "loginAttemptId": json_body.login_attempt_id,
-        "2FACode": code
+        "2FACode": code.expose_secret()
     });
 
     let response = app.verify_2fa(&incorrect_data).await;
@@ -258,7 +259,7 @@ async fn should_return_200_if_correct_code() {
     assert_eq!(json_body.message, "2FA required".to_owned());
     assert!(!json_body.login_attempt_id.is_empty());
 
-    let email = Email::parse(random_email.clone()).unwrap();
+    let email = Email::parse(Secret::new(random_email.clone())).unwrap();
     let result = app.two_fa_code_store.read().await.get_code(&email).await.unwrap();
 
     let code = result.1.as_ref();
@@ -266,7 +267,7 @@ async fn should_return_200_if_correct_code() {
     let two_fa_data = serde_json::json!({
         "email": random_email,
         "loginAttemptId": json_body.login_attempt_id,
-        "2FACode": code
+        "2FACode": code.expose_secret()
     });
 
     let response = app.verify_2fa(&two_fa_data).await;
@@ -324,7 +325,7 @@ async fn should_return_401_if_same_code_twice() {
     assert_eq!(json_body.message, "2FA required".to_owned());
     assert!(!json_body.login_attempt_id.is_empty());
 
-    let email = Email::parse(random_email.clone()).unwrap();
+    let email = Email::parse(Secret::new(random_email.clone())).unwrap();
     let result = app.two_fa_code_store.read().await.get_code(&email).await.unwrap();
 
     let code = result.1.as_ref();
@@ -332,7 +333,7 @@ async fn should_return_401_if_same_code_twice() {
     let two_fa_data = serde_json::json!({
         "email": random_email,
         "loginAttemptId": json_body.login_attempt_id,
-        "2FACode": code
+        "2FACode": code.expose_secret()
     });
 
     let response = app.verify_2fa(&two_fa_data).await;

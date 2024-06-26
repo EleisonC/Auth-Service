@@ -17,6 +17,7 @@ use utils::tracing::{
     on_request,
     on_response
 };
+use secrecy::{ExposeSecret, Secret};
 
 pub mod routes;
 pub mod services;
@@ -31,10 +32,13 @@ pub struct ErrorResponse {
 
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
+        log_error_chain(&self);
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
-            AuthAPIError::UnexpectedError => (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error"),
+            AuthAPIError::UnexpectedError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Uexpected error")
+            },
             AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
             AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token")
@@ -46,6 +50,22 @@ impl IntoResponse for AuthAPIError {
     
         (status, body).into_response()
     }
+}
+
+fn log_error_chain(e: &(dyn Error + 'static)) {
+    let separator = "\n-----------------------------------------------------------------------------------\n";
+    let mut report = format!("{}{:?}\n", separator, e);
+
+    let mut current = e.source();
+
+    while let Some(cause) = current {
+        let str = format!("Caused by \n\n{:?}", cause);
+        report = format!("{}\n{}", report, str);
+        current = cause.source();
+    }
+
+    report = format!("{}\n{}", report, separator);
+    tracing::error!("{}", report);
 }
 
 pub struct Application {
@@ -106,8 +126,8 @@ impl Application {
     }
 }
 
-pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new().max_connections(5).connect(url).await
+pub async fn get_postgres_pool(url: &Secret<String>) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new().max_connections(5).connect(url.expose_secret()).await
 }
 
 pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
